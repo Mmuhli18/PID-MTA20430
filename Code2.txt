@@ -1,0 +1,139 @@
+#include <LiquidCrystal.h>
+
+// initialize the library with the numbers of the interface pins
+LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
+
+byte block[] = {
+  B11111,
+  B11111,
+  B11111,
+  B11111,
+  B11111,
+  B11111,
+  B11111,
+  B11111
+};
+
+byte arrowRight[] = {
+  B01000,
+  B00100,
+  B00010,
+  B00001,
+  B00001,
+  B00010,
+  B00100,
+  B01000
+};
+
+byte arrowLeft[] = {
+  B00010,
+  B00100,
+  B01000,
+  B10000,
+  B10000,
+  B01000,
+  B00100,
+  B00010
+};
+
+class Button {
+private:
+  boolean lastClick = false;
+  boolean butttype = false; //False= pulldown, True = pullup
+  int pin = 0;
+public:             // Access specifier
+  Button(int inputPin, bool inputButttype){
+    pin = inputPin;
+    butttype = inputButttype;
+    pinMode(pin, INPUT);
+  }
+  bool read(){
+    if (lastClick != true and digitalRead(pin) != butttype){
+    	lastClick = true;
+        return true;
+    }
+    else if(digitalRead(pin) == butttype){
+      lastClick = false;
+      return false;
+    }
+  }
+};
+
+struct Option {
+public:
+  int size;
+  String name;
+  Option(int s, String n){
+    size = s;
+    name = n;
+  }
+};
+  
+Option options[] = {Option(1, "Feedback"), Option(1, "Input Level"), Option(1, "Mix")};
+int selectedOption = 0;
+bool systemOn = true;
+int inputLevel = 1;
+int feedbackLevel = 1;
+
+Button btMinus = Button(8, false);
+Button btPlus = Button(9, false);
+Button btPower = Button(10, false);
+Button btMoveDown = Button(11, false);
+Button btMoveUp = Button(12, false);
+
+void setup() {
+  // set up the LCD's number of columns and rows:
+  lcd.begin(16, 2);
+  lcd.createChar(0, block);
+  lcd.createChar(1, arrowRight);
+  lcd.createChar(2, arrowLeft);
+  Serial.begin(9600);
+}
+
+void loop() {
+  if(systemOn == true){
+    if(btMinus.read() == true && options[selectedOption].size > 1){
+      options[selectedOption].size--;
+      lcd.clear();
+    }
+    else if(btPlus.read() == true && options[selectedOption].size < 16){
+      options[selectedOption].size++;
+      lcd.clear();
+    }
+    if(btMoveUp.read() == true && selectedOption < sizeof(options) / sizeof(options[0]) - 1){
+      selectedOption++;
+      lcd.clear();
+    }
+    else if(btMoveDown.read() == true && selectedOption > 0){
+      selectedOption--;
+      lcd.clear();
+    }
+    
+    
+    lcd.setCursor(0, 0);
+  	lcd.print(options[selectedOption].name);
+  	lcd.setCursor(0, 1);
+  	for(int i = 0; i < options[selectedOption].size; i++){
+    	lcd.write((byte)0);
+    }
+    lcd.setCursor(14, 0);
+    
+    if(selectedOption > 0) lcd.write(2);
+    else lcd.write(" ");
+    
+    if(selectedOption < sizeof(options) / sizeof(options[0]) - 1) lcd.write(1);
+    else lcd.write(" ");
+    
+    if(btPower.read() == true){
+      systemOn = false;
+      lcd.clear();
+    }
+  }
+  //When in off-mode
+  else{
+    if(btPower.read() == true){
+      systemOn = true;
+    }
+  }
+}
+ 
